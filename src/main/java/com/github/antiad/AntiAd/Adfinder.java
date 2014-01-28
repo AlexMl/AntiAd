@@ -1,10 +1,11 @@
-package me.jne.AntiAd;
+package com.github.antiad.AntiAd;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -22,7 +23,7 @@ public class Adfinder {
     // ip pattern http://regexr.com?33l17
     private final Pattern ipPattern = Pattern.compile("((?<![0-9])(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[ ]?[.,-:; ][ ]?(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[ ]?[., ][ ]?(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[ ]?[., ][ ]?(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))(?![0-9]))");
     // web pattern http://regexr.com?36elv
-    private final Pattern webpattern = Pattern.compile("[-a-zA-Z0-9@:%_\\+.~#?&//=]{2,256}\\.[a-z]{2,4}\\b(\\/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?");
+    private final Pattern webpattern = Pattern.compile("[-a-zA-Z0-9@:%_\\+.~#?&//=]{2,256}\\.[a-z]{2,4}\\b(\\/[-a-zA-Z0-9@:%_\\+~#?&//=]*)?");
     private HashMap<Player, Integer> warn;
     private boolean urlDetection, spamDetection, IPDetection, checkWordLenght;
     private int numbers, procentCapital;
@@ -43,6 +44,7 @@ public class Adfinder {
      * @return true if it is spam/advertising and else false.
      */
     public boolean check(Player player, String message, int type, boolean checkForSpam) {
+        message = Normalizer.normalize(message, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");
         boolean rtnbool = false;
         int ad = 0;
         plugin.debug("We are testing player"+player.getName() + "Msg: "+message + "type:"+ type + "checkSpam"+ checkForSpam);
@@ -85,14 +87,12 @@ public class Adfinder {
                 spam = true;
                 i = words.length; // we sets the i to max so it doesn't run more.
                 // if the word is 4 or under && it
-            } else if (words[i].length() >= 4
-                    && words[i].equals(words[i].toUpperCase())
-                    && !isNumbers(words[i])) {
+            } else if (words[i].length() >= 4 && words[i].equals(words[i].toUpperCase()) && !isNumbers(words[i]) && procentCapital != 0) {
                 plugin.debug("else if 1");
                 spam = true;
                 i = words.length;
                 //if the words is longer than or 4 long
-            } else if (words[i].length() >= 4) {
+            } else if (words[i].length() >= 4 &&  procentCapital != 0) {
 
                 int upper = 0;
                 char[] charArray = words[i].toCharArray();
@@ -136,11 +136,11 @@ public class Adfinder {
         // CHECK FOR IP PATTERN if it's turned on.
         if (IPDetection) {
             advertising = checkForIPPattern(message);
-            System.out.println("Checking for IP");
+            plugin.debug("Checking for IP");
         }
         //if it marks it as advertising on the IP pattern, we don't want to check if for the web pattern
         if (advertising == 0 && urlDetection) {
-            System.out.println("Checking for web");
+            plugin.debug("Checking for web");
             advertising = checkForWebPattern(message);
         }
 
@@ -153,7 +153,7 @@ public class Adfinder {
      * @param message
      */
     public void log(String message) {
-        System.out.println("Begin to log:"+message);
+        plugin.debug("Begin to log:"+message);
         try {
             BufferedWriter write = new BufferedWriter(new FileWriter("plugins/AntiAd/Log.txt", true));
             write.append(message);
@@ -161,7 +161,7 @@ public class Adfinder {
             write.flush();
             write.close();
         } catch (IOException ex) {
-            plugin.getLogger().log(Level.WARNING, plugin.getColorfullLanguage("ERRORLogSave").replace("%MESSAGE%", ex.getMessage()));
+            plugin.getLogger().log(Level.WARNING, plugin.getFromLanguage("ERRORLogSave").replace("%MESSAGE%", ex.getMessage()));
         }
     }
 
@@ -172,34 +172,26 @@ public class Adfinder {
      * @param type 1 for AD 2 for spam. (gets logged)
      */
     private void sendWarning(Player player, String message, int type, int where) {
-        System.out.println("SENDING WARNING!!!!");
+        plugin.debug("SENDING WARNING!!!!");
         //First we gonna warn the admins (ops) about the player and what he chatted. 
-        if (type == 1 && plugin.getConfig().getBoolean("AdWarnAdmins")) {
+        if (type == 1 && plugin.getConfig().getBoolean("AdWarnAdmins") || (type == 2 && plugin.getConfig().getBoolean("SpamWarnAdmins"))) {
             Set<OfflinePlayer> tempOps = Bukkit.getServer().getOperators();
             OfflinePlayer[] ops = tempOps.toArray(new OfflinePlayer[tempOps.size()]);
             for (int i = 0; i < ops.length; i++) {
                 if (ops[i].isOnline()) {
-                     ops[i].getPlayer().sendMessage(plugin.getColorfullLanguageAndTag("logWarning").replace("%PLAYER%", player.getDisplayName()).replace("%TYPE%", typeToX(type, 1)).replace("%WHERE%", whereToTXT(where)));
-                }
-            }
-        } else if (type == 2 && plugin.getConfig().getBoolean("SpamWarnAdmins")) {
-            Set<OfflinePlayer> tempOps = Bukkit.getServer().getOperators();
-            OfflinePlayer[] ops = (OfflinePlayer[]) tempOps.toArray();
-            for (int i = 0; i < ops.length; i++) {
-                if (ops[i].isOnline()) {
-                    ops[i].getPlayer().sendMessage(plugin.getColorfullLanguageAndTag("logWarning").replace("%PLAYER%", player.getDisplayName()).replace("%TYPE%", typeToX(type, 1)).replace("%WHERE%", whereToTXT(where)));
+                     ops[i].getPlayer().sendMessage(plugin.getColorfullLanguageAndTag("logWarning").replace("%PLAYER%", player.getDisplayName()).replace("%TYPE%", typeToX(type, 1)).replace("%WHERE%", whereToTXT(where)).replace("%MESSAGE%", message));
                 }
             }
         }
 
         // Start logging and sending the warning
-        log(now("MMM dd,yyyy HH:mm ") + plugin.getColorfullLanguage("privatLogWarning")
+        log(now("MMM dd,yyyy HH:mm ") + plugin.getFromLanguage("privatLogWarning")
                 .replace("%PLAYER%", player.getDisplayName())
                 .replace("%TYPE%", typeToX(type, 1))
                 .replace("%MESSAGE%", message)
                 .replace("%WHERE%", whereToTXT(where)));
             
-        Bukkit.getServer().getLogger().info(plugin.getColorfullLanguageAndTag("logWarning").replace("%PLAYER%", player.getDisplayName()).replace("%TYPE%", typeToX(type, 1)).replace("%WHERE%", whereToTXT(where)));
+        Bukkit.getServer().getLogger().info(plugin.getFromLanguageAndTag("logWarning").replace("%PLAYER%", player.getDisplayName()).replace("%TYPE%", typeToX(type, 2)).replace("%WHERE%", whereToTXT(where)).replace("%MESSAGE%", message));
         //adding a warning to the player.
         int warnings = 1;
         // if we know the player we gonna remove him and count the warnings up.
@@ -223,7 +215,7 @@ public class Adfinder {
         // if the player got permission to see what happend we gonna msg them the things.
         for (Player players : Bukkit.getServer().getOnlinePlayers()) {
             if (players.hasPermission("antiad.see")) {
-                players.sendMessage(plugin.getColorfullLanguageAndTag("publicMessage").replace("%PLAYER%", player.getDisplayName()).replace("%TYPE%", typeToX(type, 4)).replace("%MESSAGE", message));
+                players.sendMessage(plugin.getColorfullLanguageAndTag("publicMessage").replace("%PLAYER%", player.getDisplayName()).replace("%TYPE%", typeToX(type, 4)).replace("%MESSAGE%", message));
             }
         }
     }
@@ -353,6 +345,10 @@ public class Adfinder {
             plugin.getLogger().log(Level.WARNING, plugin.getColorfullLanguage("whitelistNotFound"));
         }
     }
+    
+    public void whitelistAdd(String url){
+         whitelistLine.add(url);
+    }
 
     /**
      * A method to change the where int to a String.
@@ -401,15 +397,29 @@ public class Adfinder {
     private boolean isNumbers(String input) {
         boolean rtnbool = false;
         try {
-
-            Double.parseDouble(input.replaceAll("\\,", "\\."));
-
+           input = input.replaceAll("\\,","")
+                   .replaceAll("\\.","")
+                   .replaceAll("\\?", "")
+                   .replaceAll("\\:","")
+                   .replaceAll("\\;", "")
+                   .replaceAll("\\/","")
+                   .replaceAll("\\-", "")
+                   .replaceAll("\\!", "")
+                   .replaceAll("\\(", "")
+                   .replaceAll("\\)", "")
+                   .replaceAll("\\\"", "")
+                   
+                   ;
+          
+          
+            Double.parseDouble(input);
+            
             rtnbool = true;
         } catch (NumberFormatException ex) {
             //We catch this but does nothing to it because we dont need to :)
             //Because if the Double.ParseDouble throws the exception then if can't parse it.
         }
-
+        plugin.debug("isNumbers:"+rtnbool);
         return rtnbool;
     }
 
@@ -451,7 +461,7 @@ public class Adfinder {
 
         while (regexMatcherurl.find()) {
             String text = regexMatcherurl.group().trim().replaceAll("www.", "").replaceAll("http://", "").replaceAll("https://", "");
-            System.out.println(text+"g" + "reg:" +regexMatcherurl.group().length() + " group lenght"+regexMatcherurl.group().length());
+            plugin.debug(text+"g" + "reg:" +regexMatcherurl.group().length() + " group lenght"+regexMatcherurl.group().length());
             if (regexMatcherurl.group().length() != 0 && text.length() != 0) {
                 plugin.debug(regexMatcherurl.group().trim() + " + test");
                 if (webpattern.matcher(message).find()) {

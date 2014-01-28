@@ -1,4 +1,4 @@
-package me.jne.AntiAd;
+package com.github.antiad.AntiAd;
 
 import java.util.List;
 import org.bukkit.event.EventHandler;
@@ -19,7 +19,7 @@ public class ADListener implements Listener {
 
     public ADListener(AntiAd plugin) {
         this.plugin = plugin;
-        System.out.println("this is started");
+        
     }
 
     /**
@@ -29,9 +29,9 @@ public class ADListener implements Listener {
      *
      * @param chat
      */
-    @EventHandler(priority = EventPriority.HIGHEST,ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST,ignoreCancelled = false)
     public void onPlayerChat(AsyncPlayerChatEvent chat) {
-        System.out.println(chat.isCancelled());
+        plugin.debug("chat gone?"+chat.isCancelled());
 
             if (plugin.getAdfinder().check(chat.getPlayer(), chat.getMessage(), 1, true)) {
                 chat.setCancelled(true);

@@ -1,4 +1,4 @@
-package me.jne.AntiAd;
+package com.github.antiad.AntiAd;;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,13 +11,14 @@ import java.util.Properties;
 import java.util.logging.Level;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.mcstats.MetricsLite;
 
 /**
  * The main class for this bukkit plugin :)
  * @author Franz
  */
 public class AntiAd extends JavaPlugin {
-    private boolean DEBUG = true;
+    private boolean DEBUG = false;
     private Adfinder adfinder;
     private Properties language;
 
@@ -27,7 +28,7 @@ public class AntiAd extends JavaPlugin {
     @Override
     public void onEnable() {
         loadLanguage();
-        adfinder = new Adfinder(this);
+       
 
 
         //Setting op the plugin listener to listen on this :)
@@ -46,15 +47,15 @@ public class AntiAd extends JavaPlugin {
 
         checkFile("Whitelist.txt", "ERRORWhitelistCreate");
         checkFile("Log.txt", "ERRORLogCreate");
-
+        adfinder = new Adfinder(this);
         try {
-            final MetricsLite metrics = new MetricsLite(this);
+            MetricsLite metrics = new MetricsLite(this);
             metrics.start();
-        } catch (IOException ex) {
-            getLogger().info(language.getProperty("ERRORMetrics"));
+        } catch (IOException e) {
+            getLogger().info(getFromLanguage("ERRORMetrics"));
         }
 
-        getLogger().info(language.getProperty("enable").replaceAll("%PLUGIN%", getDescription().getName()).replaceAll("%VERSION%", getDescription().getVersion()));
+        getLogger().info(getFromLanguage("enable").replaceAll("%PLUGIN%", getDescription().getName()).replaceAll("%VERSION%", getDescription().getVersion()));
 
     }
 
@@ -158,6 +159,14 @@ public class AntiAd extends JavaPlugin {
     private ArrayList<String> validLanguage() {
         ArrayList<String> validLanguage = new ArrayList<String>(1);
         validLanguage.add("en");
+        validLanguage.add("pl");
+        validLanguage.add("de");
+        validLanguage.add("es");
+        validLanguage.add("fr");
+        validLanguage.add("da");
+        validLanguage.add("ru");
+        validLanguage.add("tr");
+        validLanguage.add("cn");
         return validLanguage;
     }
 
@@ -172,7 +181,6 @@ public class AntiAd extends JavaPlugin {
         text =  text.replaceAll("&([a-f0-9])", ChatColor.COLOR_CHAR + "$1");
         debug(text+ "colorfull :)");
         }catch(Exception ex){
-            System.out.println(ex.getCause());
         }
         return text;
     }
@@ -181,7 +189,7 @@ public class AntiAd extends JavaPlugin {
         try{
            text = text.replaceAll("&([a-f0-9])", "");
         }catch(Exception ex){
-           System.out.println(ex.getCause()); 
+           
         }
         return text;
     }
@@ -193,7 +201,7 @@ public class AntiAd extends JavaPlugin {
      */
     public void debug(String text) {
         if (DEBUG) {
-            System.out.println(text);
+            System.out.println("DEBUG"+text);
         }
     }
 
@@ -255,7 +263,7 @@ public class AntiAd extends JavaPlugin {
             try {
                 fileToCheck.createNewFile();
             } catch (IOException ex) {
-                getLogger().warning(language.getProperty(errorMessage));
+                getLogger().warning(getFromLanguage(errorMessage)+ " "+ex);
             }
         }
     }

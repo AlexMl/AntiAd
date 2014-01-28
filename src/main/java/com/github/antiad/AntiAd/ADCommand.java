@@ -1,9 +1,8 @@
-package me.jne.AntiAd;
+package com.github.antiad.AntiAd;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -47,7 +46,8 @@ public class ADCommand implements CommandExecutor {
                     write.newLine();
                     write.flush();
                     write.close();
-                    sender.sendMessage(ChatColor.DARK_GREEN + plugin.getLanguage().getProperty("PluginTag") + plugin.getLanguage().getProperty("AddCommandAdded"));
+                    plugin.getAdfinder().whitelistAdd(ip);
+                    sender.sendMessage(plugin.getColorfullLanguageAndTag("AddCommandAdded"));
                 } catch (IOException ex) {
                     plugin.getLogger().info(plugin.getFromLanguage("whitelistNotFound") + ex.getMessage());
                     rtnbool = false;
